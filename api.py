@@ -1,8 +1,9 @@
 import shutil
 from typing import List
 
-from fastapi import APIRouter, File, UploadFile, Form, Request
-from schemas import UploadVideo, GetVideo
+from fastapi import APIRouter, File, Form, UploadFile
+from models import User, Video
+from schemas import GetVideo, Message, UploadVideo
 
 video_router = APIRouter()
 
@@ -21,24 +22,16 @@ async def root(title: str = Form(...),
     info = UploadVideo(title=title, description=description)
     with open(f'{file.filename}', "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
-    return {'file_name': file.filename, 'info': info}
-
-
-'''Позволяет загружать фотографии.'''
-
-
-@video_router.post('/img')
-async def upload_image(files: List[UploadFile] = File(...)):
-    for img in files:
-        with open(f'{img.filename}', "wb") as buffer:
-            shutil.copyfileobj(img.file, buffer)
-
-    return {'file_name': "Good"}
+    user = await User.objects.first()
+    return await Video.objects.create(file=file.filename,
+                                      user=user,
+                                      **info.dict()
+                                      )
 
 
-@video_router.get('/video')
-async def get_video():
-    user = {'id': 25, 'name': 'Pipec'}
-    video = {'title': 'Test', 'description': 'Description'}
-    return GetVideo(user=user, video=video)  # именованные аргументы
+@video_router.get('/video/{video_pk}',
+                  response_model=GetVideo,
+                  responses={404: {'model': Message}}
+                  )
+async def get_video(video_pk: int):
+    return await Video.objects.select_related('user').get(pk=video_pk)
