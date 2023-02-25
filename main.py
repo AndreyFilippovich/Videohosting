@@ -1,6 +1,8 @@
-from api import video_router
 from fastapi import FastAPI
-from db import database, metadata, engine
+
+from db import database, engine, metadata
+from user.routers import user_router
+from video.api import video_router
 
 app = FastAPI()
 
@@ -23,3 +25,4 @@ async def shutdown() -> None:
 
 
 app.include_router(video_router)  # Подключаем эти url к нашему основному app
+app.include_router(user_router)
